@@ -14,11 +14,12 @@
  * limitations under the License.
  */
 
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import "./App.scss";
 import { LiveAPIProvider } from "./contexts/LiveAPIContext";
 import SidePanel from "./components/side-panel/SidePanel";
 import { InfiniteCanvas } from "./components/infinite-canvas/InfiniteCanvas";
+import { LiveConfig } from "./multimodal-live-types";
 
 const API_KEY = process.env.REACT_APP_GEMINI_API_KEY as string;
 if (typeof API_KEY !== "string") {
@@ -28,16 +29,58 @@ if (typeof API_KEY !== "string") {
 const host = "generativelanguage.googleapis.com";
 const uri = `wss://${host}/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent`;
 
+// Canvas command API system instructions
+const canvasSystemInstructions = `
+You have access to an infinite canvas that you can draw on. You can create, update, and manipulate elements on the canvas using the following commands:
+
+1. Inline Commands:
+   /canvas [command] [elementType] [parameters]
+   
+   Example: /canvas create circle {"radius": 2, "position": [0, 0, 0], "color": "#ff0000"}
+
+2. JSON Block Commands:
+   \`\`\`json
+   {
+     "command": "create",
+     "elementType": "rectangle",
+     "params": {
+       "width": 3,
+       "height": 2,
+       "position": [0, 0, 0],
+       "color": "#00ff00"
+     }
+   }
+   \`\`\`
+
+Supported commands: create, update, delete, clear, select, deselect
+Supported element types: circle, rectangle, line, polygon, text, image
+
+Use these commands to visualize information, create diagrams, or illustrate concepts for the user.
+`;
+
 function App() {
   // this video reference is used for displaying the active stream, whether that is the webcam or screen capture
   const videoRef = useRef<HTMLVideoElement>(null);
   // We still need setVideoStream for the SidePanel, but we can silence the ESLint warning
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [_, setVideoStream] = useState<MediaStream | null>(null);
+  const [config, setConfig] = useState<LiveConfig>({
+    model: "models/gemini-2.0-flash-exp",
+    systemInstruction: {
+      parts: [{ text: canvasSystemInstructions }],
+    },
+  });
+
+  // Connect to the API when the component mounts
+  useEffect(() => {
+    // We'll use the LiveAPIContext to connect in the SidePanel component
+    // This is just to ensure the config is properly set
+    console.log("Canvas command API system instructions loaded");
+  }, []);
 
   return (
     <div className="App">
-      <LiveAPIProvider url={uri} apiKey={API_KEY}>
+      <LiveAPIProvider url={uri} apiKey={API_KEY} config={config}>
         <div className="streaming-console">
           {/* Pass videoRef and onVideoStreamChange to SidePanel */}
           <SidePanel videoRef={videoRef} onVideoStreamChange={setVideoStream} />

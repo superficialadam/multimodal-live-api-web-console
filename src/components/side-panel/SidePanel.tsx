@@ -22,6 +22,10 @@ import { useLiveAPIContext } from "../../contexts/LiveAPIContext";
 import { useLoggerStore } from "../../lib/store-logger";
 import Logger, { LoggerFilterType } from "../logger/Logger";
 import ControlTray from "../control-tray/ControlTray";
+import {
+  processAIMessage,
+  parseCanvasCommands,
+} from "../infinite-canvas/CanvasCommandAPI";
 import "./side-panel.scss";
 
 const filterOptions = [
@@ -39,12 +43,13 @@ export default function SidePanel({
   videoRef,
   onVideoStreamChange,
 }: SidePanelProps) {
-  const { connected, client } = useLiveAPIContext();
+  const { connected, client, connect } = useLiveAPIContext();
   const [open, setOpen] = useState(true);
   const loggerRef = useRef<HTMLDivElement>(null);
   const loggerLastHeightRef = useRef<number>(-1);
   const { log, logs } = useLoggerStore();
   const [videoStream, setVideoStream] = useState<MediaStream | null>(null);
+  const [processingCanvasCommand, setProcessingCanvasCommand] = useState(false);
 
   const [textInput, setTextInput] = useState("");
   const [selectedOption, setSelectedOption] = useState<{
@@ -72,11 +77,69 @@ export default function SidePanel({
     }
   }, [logs]);
 
+  // Connect to the API when the component mounts
+  useEffect(() => {
+    // Only connect if not already connected
+    if (!connected) {
+      connect().catch((error) => {
+        console.error("Failed to connect to API:", error);
+        log({
+          date: new Date(),
+          type: "error",
+          message: `Failed to connect to API: ${error.message}`,
+        });
+      });
+    }
+  }, [connect, connected, log]);
+
   // listen for log events and store them
   useEffect(() => {
     client.on("log", log);
     return () => {
       client.off("log", log);
+    };
+  }, [client, log]);
+
+  // Listen for AI content and process for canvas commands
+  useEffect(() => {
+    const handleContent = (content: any) => {
+      // Check if it's a model turn with text content
+      if (content.modelTurn && content.modelTurn.parts) {
+        const parts = content.modelTurn.parts;
+
+        // Process each text part for canvas commands
+        parts.forEach((part: any) => {
+          if (part.text) {
+            setProcessingCanvasCommand(true);
+            try {
+              const results = processAIMessage(part.text);
+
+              // Log the results if any commands were processed
+              if (results.length > 0) {
+                log({
+                  date: new Date(),
+                  type: "canvas.commands",
+                  message: `Processed ${results.length} canvas commands`,
+                });
+              }
+            } catch (error) {
+              console.error("Error processing canvas commands:", error);
+              log({
+                date: new Date(),
+                type: "canvas.error",
+                message: `Error processing canvas commands: ${error}`,
+              });
+            } finally {
+              setProcessingCanvasCommand(false);
+            }
+          }
+        });
+      }
+    };
+
+    client.on("content", handleContent);
+    return () => {
+      client.off("content", handleContent);
     };
   }, [client, log]);
 
@@ -153,8 +216,15 @@ export default function SidePanel({
             setSelectedOption(e);
           }}
         />
-        <div className={cn("streaming-indicator", { connected })}>
-          {connected
+        <div
+          className={cn("streaming-indicator", {
+            connected: connected && !processingCanvasCommand,
+            "processing-canvas": processingCanvasCommand,
+          })}
+        >
+          {processingCanvasCommand
+            ? `🎨${open ? " Processing Canvas" : ""}`
+            : connected
             ? `🔵${open ? " Streaming" : ""}`
             : `⏸️${open ? " Paused" : ""}`}
         </div>
@@ -194,6 +264,62 @@ export default function SidePanel({
             onClick={handleSubmit}
           >
             send
+          </button>
+        </div>
+
+        {/* Test button for simulating AI response with canvas commands */}
+        <div className="test-buttons">
+          <button
+            style={{ backgroundColor: "#5a3d7a", fontWeight: "bold" }}
+            onClick={() => {
+              // Simulate AI response with canvas commands
+              const aiResponse = {
+                modelTurn: {
+                  parts: [
+                    {
+                      text: `I'll create some shapes for you on the canvas:
+
+/canvas create circle {"radius": 3, "position": [0, 0, 0], "color": "#ff0000"}
+/canvas create rectangle {"width": 4, "height": 3, "position": [6, 0, 0], "color": "#00ff00"}
+/canvas create text {"text": "AI-Generated Content", "position": [0, -5, 0], "fontSize": 1.5, "fontColor": "#ffffff"}
+
+You can see these shapes on the canvas now!`,
+                    },
+                  ],
+                },
+              };
+
+              // Process the simulated response
+              setProcessingCanvasCommand(true);
+              try {
+                const parts = aiResponse.modelTurn.parts;
+                parts.forEach((part: any) => {
+                  if (part.text) {
+                    // Parse the commands first to see what's being extracted
+                    const commands = parseCanvasCommands(part.text);
+                    console.log("Test button parsed commands:", commands);
+
+                    // Then process them
+                    const results = processAIMessage(part.text);
+                    console.log("Test button execution results:", results);
+
+                    if (results.length > 0) {
+                      log({
+                        date: new Date(),
+                        type: "canvas.commands",
+                        message: `Processed ${results.length} canvas commands from test`,
+                      });
+                    }
+                  }
+                });
+              } catch (error) {
+                console.error("Error processing test canvas commands:", error);
+              } finally {
+                setProcessingCanvasCommand(false);
+              }
+            }}
+          >
+            Test AI Canvas Commands
           </button>
         </div>
       </div>

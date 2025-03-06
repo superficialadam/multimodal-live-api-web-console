@@ -28,6 +28,7 @@ import {
   Text as CanvasText,
   Image as CanvasImage,
 } from "./canvas-elements";
+import "./CanvasCommandTest"; // Import the test functions
 
 // Grid component for the infinite canvas
 function CanvasGrid({ visible }: { visible: boolean }) {
@@ -233,12 +234,7 @@ function InfiniteCanvasComponent() {
     }
   };
 
-  // Load test elements when the component mounts
-  useEffect(() => {
-    if (elements.length === 0) {
-      createTestElements();
-    }
-  }, [elements.length]);
+  // No longer automatically load test elements when the component mounts
 
   return (
     <div className="infinite-canvas">
@@ -257,6 +253,9 @@ function InfiniteCanvasComponent() {
         <button onClick={resetView}>Reset View</button>
         <button onClick={createTestElements}>Load Test Elements</button>
         <button onClick={clearCanvas}>Clear Canvas</button>
+        <button onClick={() => window.testCanvasCommands()}>
+          Test Canvas Commands
+        </button>
       </div>
 
       {/* Element count */}

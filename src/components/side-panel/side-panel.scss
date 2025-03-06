@@ -148,6 +148,11 @@
       &.connected {
         color: var(--Blue-500, #0d9c53);
       }
+
+      // Special color when processing canvas commands
+      &.processing-canvas {
+        color: var(--Purple-500, #9c0d9c);
+      }
     }
   }
 
@@ -261,6 +266,31 @@
         user-select: none;
         padding: 0px 18px;
         white-space: pre-wrap;
+      }
+    }
+
+    // Test buttons styling
+    .test-buttons {
+      margin-top: 10px;
+      display: flex;
+      justify-content: center;
+      width: 100%;
+
+      button {
+        background: var(--Neutral-15);
+        color: var(--Neutral-90);
+        border: 1px solid var(--Neutral-20);
+        border-radius: 4px;
+        padding: 8px 12px;
+        font-size: 12px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        width: 100%;
+        max-width: 300px;
+
+        &:hover {
+          background: var(--Neutral-20);
+        }
       }
     }
   }

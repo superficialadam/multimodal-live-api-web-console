@@ -14,8 +14,9 @@
  * limitations under the License.
  */
 
-import { createContext, FC, ReactNode, useContext } from "react";
+import { createContext, FC, ReactNode, useContext, useEffect } from "react";
 import { useLiveAPI, UseLiveAPIResults } from "../hooks/use-live-api";
+import { LiveConfig } from "../multimodal-live-types";
 
 const LiveAPIContext = createContext<UseLiveAPIResults | undefined>(undefined);
 
@@ -23,14 +24,23 @@ export type LiveAPIProviderProps = {
   children: ReactNode;
   url?: string;
   apiKey: string;
+  config?: LiveConfig;
 };
 
 export const LiveAPIProvider: FC<LiveAPIProviderProps> = ({
   url,
   apiKey,
+  config,
   children,
 }) => {
   const liveAPI = useLiveAPI({ url, apiKey });
+
+  // Update the config if provided
+  useEffect(() => {
+    if (config) {
+      liveAPI.setConfig(config);
+    }
+  }, [config, liveAPI]);
 
   return (
     <LiveAPIContext.Provider value={liveAPI}>
