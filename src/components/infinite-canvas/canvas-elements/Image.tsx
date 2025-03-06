@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { memo, useEffect, useState } from "react";
+import { memo, useEffect, useState, useMemo } from "react";
 import * as THREE from "three";
 import { ImageElement } from "./types";
 
@@ -38,6 +38,8 @@ function ImageComponent({ element, onClick }: ImageProps) {
 
   const [texture, setTexture] = useState<THREE.Texture | null>(null);
   const [error, setError] = useState<boolean>(false);
+  const [naturalWidth, setNaturalWidth] = useState<number | null>(null);
+  const [naturalHeight, setNaturalHeight] = useState<number | null>(null);
 
   useEffect(() => {
     const textureLoader = new THREE.TextureLoader();
@@ -45,6 +47,14 @@ function ImageComponent({ element, onClick }: ImageProps) {
       url,
       (loadedTexture) => {
         setTexture(loadedTexture);
+
+        // Get the image dimensions from the texture
+        const image = loadedTexture.image;
+        if (image) {
+          setNaturalWidth(image.width);
+          setNaturalHeight(image.height);
+        }
+
         setError(false);
       },
       undefined,
@@ -60,6 +70,38 @@ function ImageComponent({ element, onClick }: ImageProps) {
       }
     };
   }, [url]);
+
+  // Calculate dimensions that maintain aspect ratio
+  const dimensions = useMemo(() => {
+    // Default to provided dimensions if natural dimensions aren't available
+    if (!naturalWidth || !naturalHeight) {
+      return { width, height };
+    }
+
+    const aspectRatio = naturalWidth / naturalHeight;
+
+    // If both width and height are specified, prioritize width and adjust height
+    if (width && height) {
+      return { width, height: width / aspectRatio };
+    }
+
+    // If only width is specified, calculate height based on aspect ratio
+    if (width) {
+      return { width, height: width / aspectRatio };
+    }
+
+    // If only height is specified, calculate width based on aspect ratio
+    if (height) {
+      return { width: height * aspectRatio, height };
+    }
+
+    // If neither is specified, use a default size while maintaining aspect ratio
+    const defaultSize = 5;
+    return {
+      width: defaultSize,
+      height: defaultSize / aspectRatio,
+    };
+  }, [width, height, naturalWidth, naturalHeight]);
 
   const handleClick = (e: any) => {
     e.stopPropagation();
@@ -113,7 +155,7 @@ function ImageComponent({ element, onClick }: ImageProps) {
       scale={new THREE.Vector3(...scale)}
     >
       <mesh onClick={handleClick}>
-        <planeGeometry args={[width, height]} />
+        <planeGeometry args={[dimensions.width, dimensions.height]} />
         <meshBasicMaterial
           map={texture}
           transparent={opacity < 1}
@@ -124,7 +166,7 @@ function ImageComponent({ element, onClick }: ImageProps) {
       {selected && (
         <lineSegments>
           <edgesGeometry>
-            <boxGeometry args={[width, height, 0.01]} />
+            <boxGeometry args={[dimensions.width, dimensions.height, 0.01]} />
           </edgesGeometry>
           <lineBasicMaterial color="#ffffff" />
         </lineSegments>

@@ -172,4 +172,17 @@ export const createTestElements = () => {
     fontSize: 1,
     fontColor: "#ffffff",
   });
+
+  // Add image
+  store.addElement({
+    type: "image",
+    position: [-8, -5, 0], // Positioned to the left of the text
+    rotation: [0, 0, 0],
+    scale: [1, 1, 1],
+    color: "#ffffff",
+    opacity: 1,
+    url: "/logo.jpg", // Local image from public folder
+    width: 6, // Width is 3-4 times the height to maintain aspect ratio
+    height: 2, // Adjusted height to maintain proper aspect ratio
+  });
 };
