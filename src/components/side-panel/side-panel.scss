@@ -25,7 +25,7 @@
     .react-select_option:focus-within {
       background: var(--Neutral-30);
     }
-    .react-select__option--is-focused: {
+    .react-select__option--is-focused {
       background: var(--Neutral-30);
     }
   }
@@ -78,10 +78,7 @@
       opacity: 0;
       display: none;
       left: -100%;
-      transition:
-        opacity 0.2s ease-in,
-        left 0.2s ease-in,
-        display 0.2s ease-in;
+      transition: opacity 0.2s ease-in, left 0.2s ease-in, display 0.2s ease-in;
       transition-behavior: allow-discrete;
 
       @starting-style {
@@ -97,7 +94,9 @@
   }
 
   &:not(.open) {
-    .side-panel-container {
+    .side-panel-container,
+    .video-container,
+    .media-controls-container {
       opacity: 0;
       display: none;
       transition: all 0.2s ease-in allow-discrete;
@@ -149,6 +148,40 @@
       &.connected {
         color: var(--Blue-500, #0d9c53);
       }
+    }
+  }
+
+  // Video container styles
+  .video-container {
+    width: 100%;
+    padding: 15px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    .stream {
+      width: 100%;
+      max-width: 350px;
+      border-radius: 12px;
+      aspect-ratio: 16 / 9;
+      background-color: var(--Neutral-15);
+      object-fit: cover;
+    }
+  }
+
+  // Media controls container styles
+  .media-controls-container {
+    width: 100%;
+    padding: 0 15px 15px;
+    display: flex;
+    justify-content: center;
+
+    // Override the control-tray positioning
+    .control-tray {
+      position: relative !important;
+      bottom: auto !important;
+      left: auto !important;
+      transform: none !important;
     }
   }
 
@@ -232,6 +265,7 @@
     }
   }
 }
+
 .side-panel.open {
   width: 400px;
   height: 100vh;
@@ -258,6 +292,7 @@
   align-items: center;
   transition: all 0.2s ease-in;
 }
+
 .top button {
   background: transparent;
   border: 0;

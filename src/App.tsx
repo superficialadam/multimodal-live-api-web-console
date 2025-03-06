@@ -18,9 +18,7 @@ import { useRef, useState } from "react";
 import "./App.scss";
 import { LiveAPIProvider } from "./contexts/LiveAPIContext";
 import SidePanel from "./components/side-panel/SidePanel";
-import { Altair } from "./components/altair/Altair";
-import ControlTray from "./components/control-tray/ControlTray";
-import cn from "classnames";
+import { InfiniteCanvas } from "./components/infinite-canvas/InfiniteCanvas";
 
 const API_KEY = process.env.REACT_APP_GEMINI_API_KEY as string;
 if (typeof API_KEY !== "string") {
@@ -32,37 +30,22 @@ const uri = `wss://${host}/ws/google.ai.generativelanguage.v1alpha.GenerativeSer
 
 function App() {
   // this video reference is used for displaying the active stream, whether that is the webcam or screen capture
-  // feel free to style as you see fit
   const videoRef = useRef<HTMLVideoElement>(null);
-  // either the screen capture, the video or null, if null we hide it
-  const [videoStream, setVideoStream] = useState<MediaStream | null>(null);
+  // We still need setVideoStream for the SidePanel, but we can silence the ESLint warning
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_, setVideoStream] = useState<MediaStream | null>(null);
 
   return (
     <div className="App">
       <LiveAPIProvider url={uri} apiKey={API_KEY}>
         <div className="streaming-console">
-          <SidePanel />
+          {/* Pass videoRef and onVideoStreamChange to SidePanel */}
+          <SidePanel videoRef={videoRef} onVideoStreamChange={setVideoStream} />
           <main>
             <div className="main-app-area">
-              {/* APP goes here */}
-              <Altair />
-              <video
-                className={cn("stream", {
-                  hidden: !videoRef.current || !videoStream,
-                })}
-                ref={videoRef}
-                autoPlay
-                playsInline
-              />
+              {/* Replace Altair and video with InfiniteCanvas */}
+              <InfiniteCanvas />
             </div>
-
-            <ControlTray
-              videoRef={videoRef}
-              supportsVideo={true}
-              onVideoStreamChange={setVideoStream}
-            >
-              {/* put your own buttons here */}
-            </ControlTray>
           </main>
         </div>
       </LiveAPIProvider>

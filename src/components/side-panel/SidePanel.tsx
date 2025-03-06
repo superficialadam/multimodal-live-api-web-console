@@ -21,6 +21,7 @@ import Select from "react-select";
 import { useLiveAPIContext } from "../../contexts/LiveAPIContext";
 import { useLoggerStore } from "../../lib/store-logger";
 import Logger, { LoggerFilterType } from "../logger/Logger";
+import ControlTray from "../control-tray/ControlTray";
 import "./side-panel.scss";
 
 const filterOptions = [
@@ -29,12 +30,21 @@ const filterOptions = [
   { value: "none", label: "All" },
 ];
 
-export default function SidePanel() {
+export type SidePanelProps = {
+  videoRef: React.RefObject<HTMLVideoElement>;
+  onVideoStreamChange?: (stream: MediaStream | null) => void;
+};
+
+export default function SidePanel({
+  videoRef,
+  onVideoStreamChange,
+}: SidePanelProps) {
   const { connected, client } = useLiveAPIContext();
   const [open, setOpen] = useState(true);
   const loggerRef = useRef<HTMLDivElement>(null);
   const loggerLastHeightRef = useRef<number>(-1);
   const { log, logs } = useLoggerStore();
+  const [videoStream, setVideoStream] = useState<MediaStream | null>(null);
 
   const [textInput, setTextInput] = useState("");
   const [selectedOption, setSelectedOption] = useState<{
@@ -42,6 +52,13 @@ export default function SidePanel() {
     label: string;
   } | null>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  // Update parent component when video stream changes
+  useEffect(() => {
+    if (onVideoStreamChange) {
+      onVideoStreamChange(videoStream);
+    }
+  }, [videoStream, onVideoStreamChange]);
 
   //scroll the log to the bottom when new logs come in
   useEffect(() => {
@@ -86,6 +103,28 @@ export default function SidePanel() {
           </button>
         )}
       </header>
+
+      {/* Video display area */}
+      <div className="video-container">
+        <video
+          className={cn("stream", {
+            hidden: !videoRef.current || !videoStream,
+          })}
+          ref={videoRef}
+          autoPlay
+          playsInline
+        />
+      </div>
+
+      {/* Media controls */}
+      <div className="media-controls-container">
+        <ControlTray
+          videoRef={videoRef}
+          supportsVideo={true}
+          onVideoStreamChange={setVideoStream}
+        />
+      </div>
+
       <section className="indicators">
         <Select
           className="react-select"
@@ -104,8 +143,8 @@ export default function SidePanel() {
               backgroundColor: isFocused
                 ? "var(--Neutral-30)"
                 : isSelected
-                  ? "var(--Neutral-20)"
-                  : undefined,
+                ? "var(--Neutral-20)"
+                : undefined,
             }),
           }}
           defaultValue={selectedOption}
@@ -120,11 +159,13 @@ export default function SidePanel() {
             : `⏸️${open ? " Paused" : ""}`}
         </div>
       </section>
+
       <div className="side-panel-container" ref={loggerRef}>
         <Logger
           filter={(selectedOption?.value as LoggerFilterType) || "none"}
         />
       </div>
+
       <div className={cn("input-container", { disabled: !connected })}>
         <div className="input-content">
           <textarea
