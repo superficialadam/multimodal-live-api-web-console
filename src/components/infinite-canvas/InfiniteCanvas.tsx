@@ -19,6 +19,15 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls, Grid, Text } from "@react-three/drei";
 import * as THREE from "three";
 import "./infinite-canvas.scss";
+import { useCanvasStore, createTestElements } from "./CanvasState";
+import {
+  Circle,
+  Rectangle,
+  Line,
+  Polygon,
+  Text as CanvasText,
+  Image as CanvasImage,
+} from "./canvas-elements";
 
 // Grid component for the infinite canvas
 function CanvasGrid({ visible }: { visible: boolean }) {
@@ -70,23 +79,93 @@ interface WindowWithReset extends Window {
   resetCanvasCamera?: () => void;
 }
 
+// Component to render canvas elements
+function CanvasElements({
+  onElementClick,
+}: {
+  onElementClick?: (id: string) => void;
+}) {
+  const elements = useCanvasStore((state) => state.elements);
+
+  return (
+    <>
+      {elements.map((element) => {
+        switch (element.type) {
+          case "circle":
+            return (
+              <Circle
+                key={element.id}
+                element={element}
+                onClick={onElementClick}
+              />
+            );
+          case "rectangle":
+            return (
+              <Rectangle
+                key={element.id}
+                element={element}
+                onClick={onElementClick}
+              />
+            );
+          case "line":
+            return (
+              <Line
+                key={element.id}
+                element={element}
+                onClick={onElementClick}
+              />
+            );
+          case "polygon":
+            return (
+              <Polygon
+                key={element.id}
+                element={element}
+                onClick={onElementClick}
+              />
+            );
+          case "text":
+            return (
+              <CanvasText
+                key={element.id}
+                element={element}
+                onClick={onElementClick}
+              />
+            );
+          case "image":
+            return (
+              <CanvasImage
+                key={element.id}
+                element={element}
+                onClick={onElementClick}
+              />
+            );
+          default:
+            console.warn(`Unknown element type: ${element.type}`);
+            return null;
+        }
+      })}
+    </>
+  );
+}
+
 // Scene component with access to camera controls
 function Scene({ showGrid }: { showGrid: boolean }) {
   const controlsRef = useRef<any>(null);
   const { camera } = useThree();
+  const selectElement = useCanvasStore((state) => state.selectElement);
 
-  // Set up camera for 2D top-down view
+  // Set up camera for 2D view in the xy plane
   useEffect(() => {
-    // Position camera directly above the grid looking down
-    camera.position.set(0, 20, 0);
+    // Position camera in front of the xy plane
+    camera.position.set(0, 0, 20);
     camera.lookAt(0, 0, 0);
-    // Ensure camera is orthographic for true 2D view
-    camera.up.set(0, 0, -1); // Set up vector to -z for proper orientation
+    // Standard up vector for xy plane
+    camera.up.set(0, 1, 0);
   }, [camera]);
 
   // Create resetCamera function with useCallback to avoid recreation on each render
   const resetCamera = useCallback(() => {
-    camera.position.set(0, 20, 0);
+    camera.position.set(0, 0, 20);
     camera.lookAt(0, 0, 0);
     if (controlsRef.current) {
       controlsRef.current.reset();
@@ -101,6 +180,13 @@ function Scene({ showGrid }: { showGrid: boolean }) {
     };
   }, [resetCamera]);
 
+  const handleElementClick = useCallback(
+    (id: string) => {
+      selectElement(id);
+    },
+    [selectElement]
+  );
+
   return (
     <>
       <color attach="background" args={["#1c1f21"]} />
@@ -109,6 +195,9 @@ function Scene({ showGrid }: { showGrid: boolean }) {
 
       {/* Grid for reference */}
       <CanvasGrid visible={showGrid} />
+
+      {/* Canvas elements */}
+      <CanvasElements onElementClick={handleElementClick} />
 
       {/* Info text */}
       <InfoText />
@@ -134,6 +223,8 @@ function Scene({ showGrid }: { showGrid: boolean }) {
 // Main component for the infinite canvas
 function InfiniteCanvasComponent() {
   const [showGrid, setShowGrid] = useState(true);
+  const clearCanvas = useCanvasStore((state) => state.clearCanvas);
+  const elements = useCanvasStore((state) => state.elements);
 
   const resetView = () => {
     const win = window as WindowWithReset;
@@ -141,6 +232,13 @@ function InfiniteCanvasComponent() {
       win.resetCanvasCamera();
     }
   };
+
+  // Load test elements when the component mounts
+  useEffect(() => {
+    if (elements.length === 0) {
+      createTestElements();
+    }
+  }, [elements.length]);
 
   return (
     <div className="infinite-canvas">
@@ -157,12 +255,18 @@ function InfiniteCanvasComponent() {
           {showGrid ? "Hide Grid" : "Show Grid"}
         </button>
         <button onClick={resetView}>Reset View</button>
+        <button onClick={createTestElements}>Load Test Elements</button>
+        <button onClick={clearCanvas}>Clear Canvas</button>
       </div>
+
+      {/* Element count */}
+      <div className="element-count">Elements: {elements.length}</div>
 
       {/* Info panel */}
       <div className="info-panel">
         <p>Left-click + drag: Pan</p>
         <p>Scroll: Zoom</p>
+        <p>Click on element: Select</p>
       </div>
     </div>
   );

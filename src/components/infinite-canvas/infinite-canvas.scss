@@ -41,6 +41,19 @@
     }
   }
 
+  /* Element count display */
+  .element-count {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background-color: rgba(0, 0, 0, 0.5);
+    color: var(--Neutral-90);
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 14px;
+    z-index: 10;
+  }
+
   /* Info panel */
   .info-panel {
     position: absolute;
